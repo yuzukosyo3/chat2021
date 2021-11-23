@@ -235,32 +235,163 @@ def run_chat(chat = chat, start='占いするよ', **kw):
   if start is not None:
     display_bot(start)
 
-# フレーム 状態をもつ辞書
-# 'name', 'birthday', 'asking'
-frame = {}
 
-def myuranai(input_text):
-  global frame # 外部の状態を参照する
-  if 'asking' in frame:  # asking から更新する
-    frame[frame['asking']] = input_text
-    del frame['asking']
+#ここから変更
 
-  if 'name' not in frame:
-    frame['asking'] = 'name' # 名前をたずねる  
-    return 'あなたの名前は？'
+pip install transitions
 
-  if 'name' in frame and 'birthday' not in frame:
-    frame['asking'] = 'birthday' # 誕生日をたずねる    
-    return 'あなたの誕生日は？'
+import re
 
-  if 'name' in frame and 'birthday' in frame:
-    # 占います
-    number = hash(frame['name']+frame['birthday']) % 10
-    if number > 5:
-      return 'あなたの運勢は大吉'
-    return 'あなたの運勢は吉'
+def safe_int(c):
+    if '0' <= c <= '9':
+        return int(c)
+    return 0
 
-  return output_text
+def soulnumber(s):
+  while len(s) > 1:
+    s = str(sum(int(x) for x in s))
+    if int(s) % 11 == 0:
+      return s
+  return s
 
-def start():
-  run_chat(chat=myuranai)    
+def ask_birthday(msg='生年月日は？'):
+    date = input(msg)
+    # matched = re.findall(r'(\d\d\d\d)年|/|-(\d?\d)月|/|-(\d?\d)日?', date)
+    matched = re.findall(r'(\d\d\d\d)\S?(\d\d?)\S?(\d\d?)\S?', date)
+    if len(matched) > 0:
+        year, month, day = matched[0]
+        return year+month+day
+    # matched = re.findall(r'(\d?\d)月|/|-(\d?\d)日?', date)
+    matched = re.findall(r'(\d\d?)\S?(\d\d?)\S?', date)
+    if len(matched) > 0:
+        month, day = matched[0]
+        return ask_birthyear()+month+day
+    if not date.isdigit():
+        return 0
+    return date
+
+def ask_birthyear(msg='何年生まれ？'):
+    year = input(msg)
+    if not year.isdigit():
+        raise RuntimeError('wrong format')
+    return year
+  
+from transitions import Machine
+import random
+
+
+#状態の定義
+states = ['Q0', 'Q1', 'Q2']
+
+#遷移の定義
+transitions = [
+    { 'trigger': 'E0', 'source': 'Q0', 'dest': 'Q1', 'after': 'A_1'},
+    { 'trigger': 'E1', 'source': 'Q0', 'dest': 'Q2', 'after': 'A_2'}
+]
+
+#ソウルナンバーの結果
+SN = {1:'あなたは、行動力抜群で明朗快活な人です！',
+      2:'あなたは、頼りになるリーダーです！',
+      3:'あなたは、穏やかな平和主義です！',
+      4:'あなたは、積極的でパワー溢れる人です！',
+      5:'あなたは、真面目で誠実な人です！',
+      6:'あなたは、社交的で人望を集める人です！',
+      7:'あなたは、感受性が強く繊細な人です！',
+      8:'あなたは、純粋で几帳面な人です！',
+      9:'あなたは、無邪気な寂しがり屋です！',
+      11:'あなたは、直感で人が何を考えているか、どういう人か察知することができる鋭い感受性のある人です！',
+      22:'あなたは、しっかりと準備をしてから行動したり、冷静な分析力や大胆な行動力がある人です！',
+      33:'あなたは、カリスマ性を持っていて、人々を魅了するスターの中のスターです！',
+      44:'あなたは、鋭い考えを持っているキレ者で、乗り越えられる重責を負う人です！'}
+
+#ポジティブになる言葉
+pword = ['笑う門には福来る', '失敗は成功のもと', '雲の上はいつも晴れ', 
+        '雨の後にはいい天気がやって来る', '明るい方へ　明るい方へ']
+
+  #状態を管理したいオブジェクトの元となるクラス
+class Uranai(object):
+
+  def start(self):
+    return self.ask_Q0()
+
+  def ask_Q0(self):
+    # self.your_bday = ask_birthday('誕生日を入力してね ')
+    global s
+    if s == 0:
+      return 'E1'
+    else:
+      s = soulnumber(s)
+      return 'E0'
+
+  def A_1(self):
+    global s
+    a = int(soulnumber(s))
+    self.response = SN[a]
+
+    # if a == 1:
+    #   self.response = 'あなたは、行動力抜群で明朗快活な人です！'
+
+    # elif a == 2:
+    #   # print('あなたは、頼りになるリーダーです！')
+    #   self.response = 'あなたは、頼りになるリーダーです！'
+    
+    # elif a == 3:
+    #   # print('あなたは、穏やかな平和主義です！')
+    #   self.response = 'あなたは、穏やかな平和主義です！'
+
+    # elif a == 4:
+    #   # print('あなたは、積極的でパワー溢れる人です！')
+    #   self.response = 'あなたは、積極的でパワー溢れる人です！'
+    
+    # elif a == 5:
+    #   # print('あなたは、真面目で誠実な人です！')
+    #   self.response = 'あなたは、真面目で誠実な人です！'
+    
+    # elif a == 6:
+    #   # print('あなたは、社交的で人望を集める人です！')
+    #   self.response = 'あなたは、社交的で人望を集める人です！'
+
+    # elif a == 7:
+    #   # print('あなたは、感受性が強く繊細な人です！')
+    #   self.response = 'あなたは、感受性が強く繊細な人です！'
+    
+    # elif a == 8:
+    #   # print('あなたは、純粋で几帳面な人です！')
+    #   self.response = 'あなたは、純粋で几帳面な人です！'
+    
+    # elif a == 9:
+    #   # print('あなたは、無邪気な寂しがり屋です！')
+    #   self.response = 'あなたは、無邪気な寂しがり屋です！'
+    
+    # elif a == 11:
+    #   # print('あなたは、直感で人が何を考えているか、どういう人か察知することができる鋭い感受性のある人です！')
+    #   self.response = 'あなたは、直感で人が何を考えているか、どういう人か察知することができる鋭い感受性のある人です！'
+    
+    # elif a == 22:
+    #   # print('あなたは、しっかりと準備をしてから行動したり、冷静な分析力や大胆な行動力がある人です！')
+    #   self.response = 'あなたは、しっかりと準備をしてから行動したり、冷静な分析力や大胆な行動力がある人です！'
+    
+    # elif a == 33:
+    #   # print('あなたは、カリスマ性を持っていて、人々を魅了するスターの中のスターです！')
+    #   self.response = 'あなたは、カリスマ性を持っていて、人々を魅了するスターの中のスターです！'
+    
+    # elif a == 44:
+    #   # print('あなたは、鋭い考えを持っているキレ者で、乗り越えられる重責を負う人です！')
+    #   self.response = 'あなたは、鋭い考えを持っているキレ者で、乗り越えられる重責を負う人です！'
+
+
+  def A_2(self):
+    print(random.choice(pword))
+
+
+uranai = Uranai()
+machine = Machine(model=uranai, states=states, transitions=transitions, initial='Q0', auto_transitions=False)
+
+
+def US(input_text):
+  s = ask_birthday('誕生日を入力してね　')
+  event = uranai.start()
+  uranai.trigger(event)
+  return uranai.response
+
+run_chat(chat=US)
