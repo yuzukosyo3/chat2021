@@ -236,16 +236,22 @@ def run_chat(chat = chat, start='占いするよ', **kw):
     display_bot(start)
 
 
+    
+    
+    
 #ここから変更
 
 pip install transitions
 
 import re
+import random
+
 
 def safe_int(c):
     if '0' <= c <= '9':
         return int(c)
     return 0
+
 
 def soulnumber(s):
   while len(s) > 1:
@@ -254,40 +260,15 @@ def soulnumber(s):
       return s
   return s
 
-def ask_birthday(msg='生年月日は？'):
-    date = input(msg)
-    # matched = re.findall(r'(\d\d\d\d)年|/|-(\d?\d)月|/|-(\d?\d)日?', date)
-    matched = re.findall(r'(\d\d\d\d)\S?(\d\d?)\S?(\d\d?)\S?', date)
+def birthday(date):
+    matched = re.findall(r'(\d\d\d\d)[/年-]?(\d?\d)[/月-]?(\d?\d)[/日-]?', date)
     if len(matched) > 0:
         year, month, day = matched[0]
         return year+month+day
-    # matched = re.findall(r'(\d?\d)月|/|-(\d?\d)日?', date)
-    matched = re.findall(r'(\d\d?)\S?(\d\d?)\S?', date)
-    if len(matched) > 0:
-        month, day = matched[0]
-        return ask_birthyear()+month+day
     if not date.isdigit():
         return 0
     return date
 
-def ask_birthyear(msg='何年生まれ？'):
-    year = input(msg)
-    if not year.isdigit():
-        raise RuntimeError('wrong format')
-    return year
-  
-from transitions import Machine
-import random
-
-
-#状態の定義
-states = ['Q0', 'Q1', 'Q2']
-
-#遷移の定義
-transitions = [
-    { 'trigger': 'E0', 'source': 'Q0', 'dest': 'Q1', 'after': 'A_1'},
-    { 'trigger': 'E1', 'source': 'Q0', 'dest': 'Q2', 'after': 'A_2'}
-]
 
 #ソウルナンバーの結果
 SN = {1:'あなたは、行動力抜群で明朗快活な人です！',
@@ -308,90 +289,25 @@ SN = {1:'あなたは、行動力抜群で明朗快活な人です！',
 pword = ['笑う門には福来る', '失敗は成功のもと', '雲の上はいつも晴れ', 
         '雨の後にはいい天気がやって来る', '明るい方へ　明るい方へ']
 
-  #状態を管理したいオブジェクトの元となるクラス
-class Uranai(object):
+frame = {}
 
-  def start(self):
-    return self.ask_Q0()
+def uranai(input_text):
+  global frame
+  global SN
+  global pword
+  if 'asking' in frame: 
+    frame[frame['asking']] = input_text
+    del frame['asking']
 
-  def ask_Q0(self):
-    # self.your_bday = ask_birthday('誕生日を入力してね ')
-    global s
-    if s == 0:
-      return 'E1'
-    else:
-      s = soulnumber(s)
-      return 'E0'
+  if 'birthday' not in frame:
+    frame['asking'] = 'birthday' 
+    return 'あなたの誕生日は？'
 
-  def A_1(self):
-    global s
-    a = int(soulnumber(s))
-    self.response = SN[a]
+  if 'birthday' in frame:
+    date = birthday(frame['birthday'])
+    if date == 0:
+      return random.choice(pword)
+    return SN[int(soulnumber(date))]
+  return output_text
 
-    # if a == 1:
-    #   self.response = 'あなたは、行動力抜群で明朗快活な人です！'
-
-    # elif a == 2:
-    #   # print('あなたは、頼りになるリーダーです！')
-    #   self.response = 'あなたは、頼りになるリーダーです！'
-    
-    # elif a == 3:
-    #   # print('あなたは、穏やかな平和主義です！')
-    #   self.response = 'あなたは、穏やかな平和主義です！'
-
-    # elif a == 4:
-    #   # print('あなたは、積極的でパワー溢れる人です！')
-    #   self.response = 'あなたは、積極的でパワー溢れる人です！'
-    
-    # elif a == 5:
-    #   # print('あなたは、真面目で誠実な人です！')
-    #   self.response = 'あなたは、真面目で誠実な人です！'
-    
-    # elif a == 6:
-    #   # print('あなたは、社交的で人望を集める人です！')
-    #   self.response = 'あなたは、社交的で人望を集める人です！'
-
-    # elif a == 7:
-    #   # print('あなたは、感受性が強く繊細な人です！')
-    #   self.response = 'あなたは、感受性が強く繊細な人です！'
-    
-    # elif a == 8:
-    #   # print('あなたは、純粋で几帳面な人です！')
-    #   self.response = 'あなたは、純粋で几帳面な人です！'
-    
-    # elif a == 9:
-    #   # print('あなたは、無邪気な寂しがり屋です！')
-    #   self.response = 'あなたは、無邪気な寂しがり屋です！'
-    
-    # elif a == 11:
-    #   # print('あなたは、直感で人が何を考えているか、どういう人か察知することができる鋭い感受性のある人です！')
-    #   self.response = 'あなたは、直感で人が何を考えているか、どういう人か察知することができる鋭い感受性のある人です！'
-    
-    # elif a == 22:
-    #   # print('あなたは、しっかりと準備をしてから行動したり、冷静な分析力や大胆な行動力がある人です！')
-    #   self.response = 'あなたは、しっかりと準備をしてから行動したり、冷静な分析力や大胆な行動力がある人です！'
-    
-    # elif a == 33:
-    #   # print('あなたは、カリスマ性を持っていて、人々を魅了するスターの中のスターです！')
-    #   self.response = 'あなたは、カリスマ性を持っていて、人々を魅了するスターの中のスターです！'
-    
-    # elif a == 44:
-    #   # print('あなたは、鋭い考えを持っているキレ者で、乗り越えられる重責を負う人です！')
-    #   self.response = 'あなたは、鋭い考えを持っているキレ者で、乗り越えられる重責を負う人です！'
-
-
-  def A_2(self):
-    print(random.choice(pword))
-
-
-uranai = Uranai()
-machine = Machine(model=uranai, states=states, transitions=transitions, initial='Q0', auto_transitions=False)
-
-
-def US(input_text):
-  s = ask_birthday('誕生日を入力してね　')
-  event = uranai.start()
-  uranai.trigger(event)
-  return uranai.response
-
-run_chat(chat=US)
+run_chat(chat=uranai)
