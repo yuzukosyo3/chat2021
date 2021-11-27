@@ -241,8 +241,6 @@ def run_chat(chat = chat, start='占いするよ', **kw):
     
 #ここから変更
 
-pip install transitions
-
 import re
 import random
 
